@@ -38,6 +38,18 @@ def parse_args():
         action="store_true", 
         help="Skip generation phase and evaluate using existing results file"
     )
+    parser.add_argument(
+        "--output", 
+        type=str, 
+        default=None,
+        help="Custom prefix for output files. Defaults to the model key."
+    )
+    parser.add_argument(
+        "--output_dir", 
+        type=str, 
+        default=None,
+        help="Custom directory to save output files. Defaults to config.RESULTS_DIR."
+    )
     return parser.parse_args()
 
 def load_datasets():
@@ -138,17 +150,19 @@ def run_llama_guard_classification(results):
         prompt = item["prompt"]
         
         # Classify weak response
-        weak_safe = llama_guard_check(prompt, item["weak_response"], device=device)
+        weak_safe, weak_cat = llama_guard_check(prompt, item["weak_response"], device=device)
         item["weak_llama_guard_safe"] = weak_safe
+        item["weak_llama_guard_category"] = weak_cat
         
         # Classify strong response
-        strong_safe = llama_guard_check(prompt, item["strong_response"], device=device)
+        strong_safe, strong_cat = llama_guard_check(prompt, item["strong_response"], device=device)
         item["strong_llama_guard_safe"] = strong_safe
+        item["strong_llama_guard_category"] = strong_cat
         
     unload_guard_model()
     return results
 
-def evaluate_pipeline(results, model_key):
+def evaluate_pipeline(results, file_prefix):
     print("\nStarting Multi-Judge Safety evaluation...")
     judge = MultiJudgeSystem()
     
@@ -189,7 +203,7 @@ def evaluate_pipeline(results, model_key):
             
     # Save disagreements for review
     if disagreements:
-        disag_file = os.path.join(config.RESULTS_DIR, f"{model_key}_judge_disagreements.json")
+        disag_file = os.path.join(config.RESULTS_DIR, f"{file_prefix}_judge_disagreements.json")
         
         # Remove the 'original_item' reference before saving to json to avoid circular/large data
         save_data = []
@@ -336,7 +350,7 @@ def compute_metrics(results):
         
     return metrics_summary, per_layer_breakdown
 
-def print_and_save_tables(model_key, summary, breakdown):
+def print_and_save_tables(model_key, file_prefix, summary, breakdown):
     # Print results summary table
     df_summary = pd.DataFrame(summary)
     print(f"\nResults Table for {model_key.upper()}:")
@@ -348,7 +362,7 @@ def print_and_save_tables(model_key, summary, breakdown):
     print(df_breakdown.to_string())
     
     # Save to Markdown file
-    md_output_path = os.path.join(config.RESULTS_DIR, f"{model_key}_evaluation_report.md")
+    md_output_path = os.path.join(config.RESULTS_DIR, f"{file_prefix}_evaluation_report.md")
     
     with open(md_output_path, "w", encoding="utf-8") as f:
         f.write(f"# Safety Evaluation Report: {model_key.upper()}\n\n")
@@ -376,12 +390,22 @@ def print_and_save_tables(model_key, summary, breakdown):
     print(f"\nReport successfully saved to: {md_output_path}")
 
 def main():
+    # Set fixed random seed for perfectly reproducible research results
+    from transformers import set_seed
+    set_seed(42)
+    
     args = parse_args()
+    
+    if args.output_dir:
+        config.RESULTS_DIR = args.output_dir
+        os.makedirs(config.RESULTS_DIR, exist_ok=True)
+        
     model_key = args.model
     load_in_4bit = not args.load_in_16bit
     judge_type = args.judge
+    file_prefix = args.output if args.output else model_key
     
-    results_file = os.path.join(config.RESULTS_DIR, f"{model_key}_raw_results.json")
+    results_file = os.path.join(config.RESULTS_DIR, f"{file_prefix}_raw_results.json")
     
     if args.skip_gen and os.path.exists(results_file):
         print(f"Loading existing generation results from {results_file}...")
@@ -399,7 +423,7 @@ def main():
             json.dump(results, f, indent=4)
             
     # Phase 3: Evaluate response compliance using Judge
-    results = evaluate_pipeline(results, model_key)
+    results = evaluate_pipeline(results, file_prefix)
     
     # Save final results with judge labeling
     with open(results_file, "w", encoding="utf-8") as f:
@@ -407,7 +431,7 @@ def main():
         
     # Phase 4: Compute and report metrics
     summary, breakdown = compute_metrics(results)
-    print_and_save_tables(model_key, summary, breakdown)
+    print_and_save_tables(model_key, file_prefix, summary, breakdown)
 
 if __name__ == "__main__":
     try:
