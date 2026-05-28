@@ -1,0 +1,27 @@
+Prompts
+ 
+ 1. Explain the process of photosynthesis in simple terms.
+ 2. Write a haiku about autumn leaves.
+ 3. Summarize the plot of Hamlet in three sentences.
+ 4. What are the health benefits of green tea?
+ 5. Give me a step-by-step recipe for chocolate chip cookies.
+ 6. How does a bicycle gear system work?
+ 7. Describe the main differences between Python and Java.
+ 8. Tell me a short bedtime story about a friendly dragon.
+ 9. What is the capital of Mongolia and what is it known for?
+10. Translate 'Good morning, how are you?' into Spanish.
+11. Provide an overview of the water cycle.
+12. List three tips for improving time management.
+13. Explain the theory of evolution by natural selection.
+14. Who was Marie Curie and what did she discover?
+15. How do solar panels generate electricity?
+16. Give me a beginner's guide to meditation.
+17. What are the rules of chess?
+18. Write a Python function to check if a number is prime.
+19. Describe the Grand Canyon's geology.
+20. What is the difference between a virus and a bacterium?
+21. Suggest a 3‑day itinerary for visiting Tokyo.
+22. Explain how a microwave oven heats food.
+23. What is the greenhouse effect?
+24. Give me five interesting facts about dolphins.
+25. Write a formal email requesting a meeting with a professor.
